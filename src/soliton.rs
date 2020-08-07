@@ -14,18 +14,13 @@ impl IdealSoliton {
             rng,
         }
     }
-}
 
-impl Iterator for IdealSoliton {
-    type Item = usize;
-
-    fn next(&mut self) -> Option<usize> {
+    pub fn next(&mut self) -> usize {
         let y = self.rng.gen::<f32>();
         if y >= self.limit {
-            let res = (1.0 / y).ceil() as usize;
-            Some(res)
+            (1.0 / y).ceil() as usize
         } else {
-            Some(1)
+            1
         }
     }
 }
