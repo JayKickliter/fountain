@@ -32,40 +32,37 @@ impl Decoder {
     /// # Example
     ///
     /// ```
-    /// extern crate rand;
-    /// extern crate fountaincode;
-    ///
-    /// fn main() {
+    /// # extern crate rand;
+    /// # extern crate fountaincode;
+    /// # fn main() {
     ///     use self::fountaincode::encoder::Encoder;
     ///     use self::fountaincode::decoder::Decoder;
     ///     use self::fountaincode::types::*;
     ///     use self::rand::{thread_rng, Rng};
     ///     use rand::distributions::Alphanumeric;
     ///
-    ///     let s:String = thread_rng().sample_iter(Alphanumeric).take(1024).collect();
-    ///     let buf = s.into_bytes();
-    ///     let to_compare = buf.clone();
-    ///     let length = buf.len();
+    ///     let s: String = thread_rng().sample_iter(Alphanumeric).take(1024).collect();
+    ///     let msg = s.into_bytes();
+    ///     let msg_len = msg.len();
     ///
-    ///     let mut enc = Encoder::new(buf, 64, EncoderType::Random);
-    ///     let mut dec = Decoder::new(length, 64);
+    ///     let mut enc = Encoder::new(msg.clone(), 64, EncoderType::Random);
+    ///     let mut dec = Decoder::new(msg_len, 64);
+    ///
+    ///     let mut decoded = vec![0; msg_len];
     ///
     ///     for drop in enc {
-    ///         match dec.catch(drop) {
+    ///         match dec.catch_to(drop, &mut decoded) {
     ///             CatchResult::Missing(stats) => {
     ///                 println!("Missing blocks {:?}", stats);
     ///             }
-    ///             CatchResult::Finished(data, stats) => {
-    ///                 for i in 0..length {
-    ///                     assert_eq!(to_compare[i], data[i]);
-    ///                 }
+    ///             CatchResult::Finished(dec_len, stats) => {
     ///                 println!("Finished, stas: {:?}", stats);
-    ///                 //write data to disk??
+    ///                 assert_eq!(msg, &decoded[..dec_len]);
     ///                 return
     ///             }
     ///         }
     ///     }
-    /// }
+    /// # }
     /// ```
     pub fn new(len: usize, blocksize: usize) -> Decoder {
         let number_of_chunks = ((len as f32) / blocksize as f32).ceil() as usize;
@@ -151,9 +148,7 @@ impl Decoder {
         }
     }
 
-    /// Catches a Droplet
-    /// When it is possible to reconstruct a set, the bytes are returned
-    pub fn catch(&mut self, drop: Droplet) -> CatchResult {
+    pub fn catch_to(&mut self, drop: Droplet, buf: &mut [u8]) -> CatchResult {
         self.cnt_received_drops += 1;
         let sample: Vec<usize> = match drop.droptype {
             DropType::Seeded(seed, degree) => {
@@ -175,12 +170,8 @@ impl Decoder {
         };
 
         if self.unknown_chunks == 0 {
-            let mut result = Vec::with_capacity(self.total_length);
-            for i in 0..self.total_length {
-                // TODO: we should be able to do that without copying
-                result.push(self.data[i]);
-            }
-            CatchResult::Finished(result, stats)
+            buf.copy_from_slice(&self.data[..self.total_length]);
+            CatchResult::Finished(self.total_length, stats)
         } else {
             CatchResult::Missing(stats)
         }

@@ -1,10 +1,8 @@
-extern crate fountaincode;
-extern crate rand;
-
 use self::fountaincode::decoder::Decoder;
 use self::fountaincode::encoder::Encoder;
 use self::fountaincode::types::*;
-
+use fountaincode;
+use rand;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 
@@ -20,18 +18,16 @@ fn encode_decode_random(total_len: usize, chunk_len: usize) {
     let enc = Encoder::new(buf, chunk_len, EncoderType::Random);
     let mut dec = Decoder::new(len, chunk_len);
 
+    let mut decode_buf = vec![0; to_compare.len()];
+
     for drop in enc {
-        match dec.catch(drop) {
+        match dec.catch_to(drop, decode_buf.as_mut()) {
             CatchResult::Missing(stats) => {
                 println!("Missing blocks {:?}", stats);
             }
-            CatchResult::Finished(data, stats) => {
-                assert_eq!(to_compare.len(), data.len());
-                for i in 0..len {
-                    println!("stats: {:?}", stats);
-                    assert_eq!(to_compare[i], data[i]);
-                }
-                println!("Finished, stas: {:?}", stats);
+            CatchResult::Finished(dec_len, stats) => {
+                assert_eq!(to_compare.as_slice(), &decode_buf[..dec_len]);
+                println!("Finished, stats: {:?}", stats);
                 return;
             }
         }
@@ -51,20 +47,18 @@ fn encode_decode_systematic(total_len: usize, chunk_len: usize) {
     let mut dec = Decoder::new(len, chunk_len);
 
     let mut cnt_drops = 0;
+    let mut decode_buf = vec![0; to_compare.len()];
 
     for drop in enc {
         cnt_drops += 1;
-        match dec.catch(drop) {
+        match dec.catch_to(drop, &mut decode_buf) {
             CatchResult::Missing(stats) => {
                 //a systematic encoder and no loss on channel should only need k symbols
                 assert_eq!(stats.cnt_chunks - stats.unknown_chunks, cnt_drops)
             }
-            CatchResult::Finished(data, stats) => {
-                assert_eq!(to_compare.len(), data.len());
+            CatchResult::Finished(dec_len, stats) => {
                 assert_eq!(stats.cnt_chunks, cnt_drops);
-                for i in 0..len {
-                    assert_eq!(to_compare[i], data[i]);
-                }
+                assert_eq!(to_compare.as_slice(), &decode_buf[..dec_len]);
                 return;
             }
         }
@@ -84,19 +78,18 @@ fn encode_decode_systematic_with_loss(total_len: usize, chunk_len: usize, loss: 
     let mut dec = Decoder::new(len, chunk_len);
 
     let mut loss_rng = thread_rng();
+    let mut decode_buf = vec![0; total_len];
 
     for drop in enc {
         if loss_rng.gen::<f32>() > loss {
-            match dec.catch(drop) {
+            match dec.catch_to(drop, &mut decode_buf) {
                 CatchResult::Missing(_) => {
                     //a systematic encoder and no loss on channel should only need k symbols
                     //assert_eq!(stats.cnt_chunks-stats.unknown_chunks, cnt_drops)
                 }
-                CatchResult::Finished(data, _) => {
-                    assert_eq!(to_compare.len(), data.len());
-                    for i in 0..len {
-                        assert_eq!(to_compare[i], data[i]);
-                    }
+                CatchResult::Finished(dec_len, _) => {
+                    assert_eq!(to_compare.len(), dec_len);
+                    assert_eq!(to_compare.as_slice(), &decode_buf[..dec_len]);
                     return;
                 }
             }

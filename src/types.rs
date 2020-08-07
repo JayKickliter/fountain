@@ -21,6 +21,6 @@ pub enum DropType {
 
 #[derive(Debug)]
 pub enum CatchResult {
-    Finished(Vec<u8>, Statistics),
+    Finished(usize, Statistics),
     Missing(Statistics),
 }
