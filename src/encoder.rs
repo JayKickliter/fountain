@@ -76,6 +76,39 @@ impl Encoder {
             encodertype,
         }
     }
+
+    pub fn encode_to_buf(&mut self, buf: &mut [u8]) -> DropType {
+        assert!(buf.len() >= self.blocksize);
+
+        let drop_type = match self.encodertype {
+            EncoderType::Random => {
+                let degree = self.sol.next();
+                let seed = self.rng.gen::<u64>();
+                let sample = get_sample_from_rng_by_seed(seed, self.dist, degree);
+
+                for k in sample {
+                    let begin = k * self.blocksize;
+                    let end = cmp::min((k + 1) * self.blocksize, self.len);
+
+                    for (src_dat, dst) in self.data[begin..end].iter().zip(buf.iter_mut()) {
+                        *dst ^= src_dat;
+                    }
+                }
+                DropType::Seeded(seed, degree)
+            }
+            EncoderType::Systematic => {
+                let begin = self.cnt * self.blocksize;
+                let end = cmp::min((self.cnt + 1) * self.blocksize, self.len);
+                buf[..end - begin].copy_from_slice(&self.data[begin..end]);
+                if self.cnt + 2 > self.cnt_blocks {
+                    self.encodertype = EncoderType::Random;
+                }
+                DropType::Edges(self.cnt)
+            }
+        };
+        self.cnt += 1;
+        drop_type
+    }
 }
 
 pub fn get_sample_from_rng_by_seed(
@@ -90,39 +123,8 @@ pub fn get_sample_from_rng_by_seed(
 impl Iterator for Encoder {
     type Item = Droplet;
     fn next(&mut self) -> Option<Droplet> {
-        let drop = match self.encodertype {
-            EncoderType::Random => {
-                let degree = self.sol.next();
-                let seed = self.rng.gen::<u64>();
-                let sample = get_sample_from_rng_by_seed(seed, self.dist, degree);
-                let mut r = vec![0; self.blocksize];
-
-                for k in sample {
-                    let begin = k * self.blocksize;
-                    let end = cmp::min((k + 1) * self.blocksize, self.len);
-
-                    for (src_dat, drop_dat) in self.data[begin..end].iter().zip(r.iter_mut()) {
-                        *drop_dat ^= src_dat;
-                    }
-                }
-                Some(Droplet::new(DropType::Seeded(seed, degree), r))
-            }
-            EncoderType::Systematic => {
-                let begin = self.cnt * self.blocksize;
-                let end = cmp::min((self.cnt + 1) * self.blocksize, self.len);
-                let mut r = vec![0; self.blocksize];
-
-                for (src_dat, drop_dat) in self.data[begin..end].iter().zip(r.iter_mut()) {
-                    *drop_dat = *src_dat;
-                }
-                if (self.cnt + 2) > self.cnt_blocks {
-                    self.encodertype = EncoderType::Random;
-                }
-                Some(Droplet::new(DropType::Edges(self.cnt), r))
-            }
-        };
-
-        self.cnt += 1;
-        drop
+        let mut r = vec![0; self.blocksize];
+        let drop_type = self.encode_to_buf(&mut r);
+        Some(Droplet::new(drop_type, r))
     }
 }
