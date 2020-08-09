@@ -113,32 +113,21 @@ impl Decoder {
                 let block = self.blocks.get_mut(first_idx).unwrap();
 
                 if !block.is_known {
-                    {
-                        let b_drop = &drop;
-                        for i in 0..self.blocksize {
-                            self.data[block.begin_at + i] = b_drop.data[i];
-                        }
-                    }
+                    self.data[block.begin_at..block.begin_at + self.blocksize]
+                        .copy_from_slice(&drop.data);
                     block.is_known = true;
                     self.unknown_chunks -= 1;
 
                     while let Some(mut edge) = block.edges.pop() {
-                        let m_edge = &mut edge;
-
-                        if m_edge.edges_idx.len() == 1 {
+                        if edge.edges_idx.len() == 1 {
                             drops.push(edge);
                         } else {
                             for i in 0..self.blocksize {
-                                m_edge.data[i] ^= self.data[block.begin_at + i]
+                                edge.data[i] ^= self.data[block.begin_at + i]
                             }
-
-                            let pos = m_edge
-                                .edges_idx
-                                .iter()
-                                .position(|x| x == &block.idx)
-                                .unwrap();
-                            m_edge.edges_idx.remove(pos);
-                            if m_edge.edges_idx.len() == 1 {
+                            let pos = edge.edges_idx.iter().position(|x| x == &block.idx).unwrap();
+                            edge.edges_idx.remove(pos);
+                            if edge.edges_idx.len() == 1 {
                                 drops.push(edge.clone());
                             }
                         }
