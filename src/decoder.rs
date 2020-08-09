@@ -69,7 +69,7 @@ impl Decoder {
         let data: Vec<u8> = vec![0; number_of_chunks * blocksize];
         let mut edges: Vec<Block> = Vec::with_capacity(number_of_chunks);
         for i in 0..number_of_chunks {
-            let blk = Block::new(i, Vec::new(), blocksize * i, false);
+            let blk = Block::new(i, blocksize * i, false);
             edges.push(blk);
         }
 

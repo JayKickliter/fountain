@@ -9,10 +9,10 @@ pub struct Block {
 }
 
 impl Block {
-    pub fn new(idx: usize, edges: Vec<RxDroplet>, begin_at: usize, is_known: bool) -> Block {
+    pub fn new(idx: usize, begin_at: usize, is_known: bool) -> Block {
         Block {
             idx,
-            edges,
+            edges: Vec::new(),
             begin_at,
             is_known,
         }
