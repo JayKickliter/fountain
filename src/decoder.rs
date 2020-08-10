@@ -89,11 +89,10 @@ impl Decoder {
         let mut drops: Vec<RxDroplet> = Vec::new();
         drops.push(droplet);
         while let Some(drop) = drops.pop() {
-            let edges = drop.edges_idx.clone();
             // TODO: Maybe add shortcut for the first wave of
             // systematic codes, reduce overhead
 
-            for ed in edges {
+            for &ed in &drop.edges_idx {
                 // the list is edited, hence we copy first
                 let block = self.blocks.get_mut(ed).unwrap();
                 if block.is_known {
@@ -107,8 +106,8 @@ impl Decoder {
                     block.edges.push(drop.clone());
                 }
             }
-            if drop.clone().edges_idx.len() == 1 {
-                let first_idx = *drop.edges_idx.clone().get(0).unwrap();
+            if drop.edges_idx.len() == 1 {
+                let first_idx = *drop.edges_idx.get(0).unwrap();
 
                 let block = self.blocks.get_mut(first_idx).unwrap();
 
@@ -128,7 +127,7 @@ impl Decoder {
                             let pos = edge.edges_idx.iter().position(|x| x == &block.idx).unwrap();
                             edge.edges_idx.remove(pos);
                             if edge.edges_idx.len() == 1 {
-                                drops.push(edge.clone());
+                                drops.push(edge);
                             }
                         }
                     }
