@@ -4,6 +4,7 @@ use crate::{
     ideal_soliton::IdealSoliton,
     soliton::Soliton,
     types::{DropType, EncoderType},
+    xor::xor_bytes,
 };
 use rand::{
     distributions::Uniform,
@@ -101,10 +102,7 @@ impl Encoder for IdealEncoder {
                 for k in sample {
                     let begin = k * self.blocksize;
                     let end = cmp::min((k + 1) * self.blocksize, self.len);
-
-                    for (src_dat, drop_dat) in self.data[begin..end].iter().zip(r.iter_mut()) {
-                        *drop_dat ^= src_dat;
-                    }
+                    xor_bytes(&mut r, &self.data[begin..end]);
                 }
                 Droplet::new(DropType::Seeded(seed, degree), r)
             }

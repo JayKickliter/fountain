@@ -10,6 +10,9 @@ repository = "https://github.com/chrido/fountain.git"
 license = "MIT/Apache-2.0"
 keywords = ["FEC", "ErrorCorrection", "FountainCode"]
 
+[profile.release]
+debug = true
+
 [dependencies]
 rand = "0.7.3"
 

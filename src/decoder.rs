@@ -3,6 +3,7 @@ use crate::{
     droplet::{Droplet, RxDroplet},
     robust_encoder::get_sample_from_rng_by_seed,
     types::{CatchResult, DropType},
+    xor::xor_bytes,
 };
 use rand::distributions::Uniform;
 
@@ -103,9 +104,10 @@ impl Decoder {
                 let block = self.blocks.get_mut(ed).unwrap();
                 if block.is_known {
                     let mut b_drop = drop.clone();
-                    for i in 0..self.blocksize {
-                        b_drop.data[i] ^= self.data[block.begin_at + i];
-                    }
+                    xor_bytes(
+                        &mut b_drop.data[..self.blocksize],
+                        &self.data[block.begin_at..],
+                    );
                     let pos = b_drop.edges_idx.iter().position(|x| x == &ed).unwrap();
                     b_drop.edges_idx.remove(pos);
                 } else {
@@ -133,9 +135,10 @@ impl Decoder {
                         if m_edge.edges_idx.len() == 1 {
                             drops.push(edge);
                         } else {
-                            for i in 0..self.blocksize {
-                                m_edge.data[i] ^= self.data[block.begin_at + i]
-                            }
+                            xor_bytes(
+                                &mut m_edge.data[..self.blocksize],
+                                &self.data[block.begin_at..],
+                            );
 
                             let pos = m_edge
                                 .edges_idx

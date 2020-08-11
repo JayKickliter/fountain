@@ -10,3 +10,4 @@ pub mod robust_encoder;
 pub mod robust_soliton;
 pub mod soliton;
 pub mod types;
+pub(crate) mod xor;
