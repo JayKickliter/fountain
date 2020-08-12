@@ -17,7 +17,7 @@ pub fn xor_bytes(lhs: &mut [u8], rhs: &[u8]) {
     xor_bytes_fallback(lhs, rhs);
 }
 
-fn xor_bytes_fallback(lhs: &mut [u8], rhs: &[u8]) {
+pub fn xor_bytes_fallback(lhs: &mut [u8], rhs: &[u8]) {
     for (l, r) in lhs.iter_mut().zip(rhs) {
         *l ^= *r;
     }
@@ -25,7 +25,7 @@ fn xor_bytes_fallback(lhs: &mut [u8], rhs: &[u8]) {
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 #[target_feature(enable = "avx2")]
-unsafe fn xor_bytes_avx2(mut lhs: &mut [u8], mut rhs: &[u8]) {
+pub unsafe fn xor_bytes_avx2(mut lhs: &mut [u8], mut rhs: &[u8]) {
     const STRIDE: usize = ::std::mem::size_of::<arch::__m256i>();
     while lhs.len() >= STRIDE && rhs.len() >= STRIDE {
         #[allow(clippy::cast_ptr_alignment)]
@@ -44,7 +44,7 @@ unsafe fn xor_bytes_avx2(mut lhs: &mut [u8], mut rhs: &[u8]) {
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 #[target_feature(enable = "sse2")]
-unsafe fn xor_bytes_sse2(mut lhs: &mut [u8], mut rhs: &[u8]) {
+pub unsafe fn xor_bytes_sse2(mut lhs: &mut [u8], mut rhs: &[u8]) {
     const STRIDE: usize = ::std::mem::size_of::<arch::__m128i>();
     while lhs.len() >= STRIDE && rhs.len() >= STRIDE {
         #[allow(clippy::cast_ptr_alignment)]

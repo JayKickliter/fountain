@@ -25,3 +25,7 @@ stopwatch = "0.0.7"
 [[bench]]
 name = "decoder_benchmark"
 harness = false
+
+[[bench]]
+name = "xor_benchmark"
+harness = false
