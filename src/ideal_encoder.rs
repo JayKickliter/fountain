@@ -112,11 +112,10 @@ impl Encoder for IdealEncoder {
                     ((self.cnt % self.cnt_blocks) + 1) * self.blocksize,
                     self.len,
                 );
-                let mut r = vec![0; self.blocksize];
+                let mut r = Vec::with_capacity(self.blocksize);
+                r.extend_from_slice(&self.data[begin..end]);
+                r.resize(self.blocksize, 0);
 
-                for (src_dat, drop_dat) in self.data[begin..end].iter().zip(r.iter_mut()) {
-                    *drop_dat = *src_dat;
-                }
                 if (self.cnt + 2) > self.cnt_blocks * 2 {
                     self.encodertype = EncoderType::Random;
                 }
