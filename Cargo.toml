@@ -20,6 +20,7 @@ debug = true
 
 [dependencies]
 rand = "0.7.3"
+petgraph = {version = "0.5"}
 
 [dev-dependencies]
 criterion = "0.3"
