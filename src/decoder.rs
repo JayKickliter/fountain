@@ -1,7 +1,6 @@
 use crate::{
     block::Block,
-    droplet::{DropType, Droplet, RxDroplet},
-    encoder::get_sample_from_rng_by_seed,
+    droplet::{Droplet, RxDroplet},
     xor::xor_bytes,
 };
 use rand::distributions::Uniform;
@@ -146,13 +145,7 @@ impl Decoder {
     /// When it is possible to reconstruct a set, the bytes are returned
     pub fn catch(&mut self, drop: Droplet) -> CatchResult {
         self.cnt_received_drops += 1;
-        let sample: Vec<usize> = match drop.droptype {
-            DropType::Seeded(seed, degree) => {
-                get_sample_from_rng_by_seed(seed, self.dist, degree).collect()
-            }
-            DropType::Edges(edges) => vec![edges],
-        };
-
+        let sample: Vec<usize> = drop.edges.iter_with_range(self.dist).collect();
         let rxdrop = RxDroplet {
             edges_idx: sample,
             data: drop.data,

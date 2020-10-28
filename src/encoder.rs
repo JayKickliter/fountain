@@ -1,5 +1,5 @@
 use crate::{
-    droplet::{DropType, Droplet},
+    droplet::{Droplet, Edges},
     soliton::Soliton,
     xor::xor_bytes,
 };
@@ -91,20 +91,20 @@ impl Encoder {
     }
 
     pub fn drop(&mut self) -> Droplet {
-        let mut r = vec![0; self.blocksize];
+        let mut data = vec![0; self.blocksize];
 
         let drop = match self.encodertype {
             EncoderType::Random => {
                 let degree = self.sol.sample(&mut self.rng);
                 let seed = self.rng.gen::<u64>();
-                let sample = get_sample_from_rng_by_seed(seed, self.dist, degree);
+                let edges = Edges::Seeded(seed, degree);
 
-                for k in sample {
+                for k in edges.iter_with_range(self.dist) {
                     let begin = k * self.blocksize;
                     let end = cmp::min((k + 1) * self.blocksize, self.len);
-                    xor_bytes(&mut r, &self.data[begin..end]);
+                    xor_bytes(&mut data, &self.data[begin..end]);
                 }
-                Droplet::new(DropType::Seeded(seed, degree), r)
+                Droplet { edges, data }
             }
             EncoderType::Systematic => {
                 let begin = (self.cnt % self.cnt_blocks) * self.blocksize;
@@ -113,28 +113,20 @@ impl Encoder {
                     self.len,
                 );
 
-                for (src_dat, drop_dat) in self.data[begin..end].iter().zip(r.iter_mut()) {
+                for (src_dat, drop_dat) in self.data[begin..end].iter().zip(data.iter_mut()) {
                     *drop_dat = *src_dat;
                 }
                 if (self.cnt + 2) > self.cnt_blocks * 2 {
                     self.encodertype = EncoderType::Random;
                 }
-                Droplet::new(DropType::Edges(self.cnt % self.cnt_blocks), r)
+                let edges = Edges::Edge(self.cnt % self.cnt_blocks);
+                Droplet { edges, data }
             }
         };
 
         self.cnt += 1;
         drop
     }
-}
-
-pub fn get_sample_from_rng_by_seed(
-    seed: u64,
-    range: rand::distributions::Uniform<usize>,
-    degree: usize,
-) -> impl Iterator<Item = usize> {
-    let rng: StdRng = SeedableRng::seed_from_u64(seed);
-    rng.sample_iter(range).take(degree)
 }
 
 impl Iterator for Encoder {
